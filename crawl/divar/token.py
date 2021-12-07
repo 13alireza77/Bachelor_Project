@@ -49,7 +49,6 @@ class CrawlToken:
                     if last_post_date < 0 or int(last_post_date) < database_last_post_date:
                         break
                     sleep(0.1)
-                    break
                 except Exception as e:
                     logging.error(f"{resp}, {e}")
                     print(resp, e)

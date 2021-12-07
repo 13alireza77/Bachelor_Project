@@ -43,20 +43,21 @@ class TokenManager:
             TokenWaitPost.token_rabbit(res, city)
 
     def manage(self):
-        if self.cities:
-            with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
-                futures = [executor.submit(self.run_city, c) for c in self.cities]
-                for future in concurrent.futures.as_completed(futures):
-                    try:
-                        message = future.result()
-                        if message is not None:
-                            logging.info("TokenManager get token")
-                            print('result', True)
-                    except Exception as e:
-                        logging.error(e)
-                        print(e)
-        else:
-            sleep(30)
+        while True:
+            if self.cities:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+                    futures = [executor.submit(self.run_city, c) for c in self.cities]
+                    for future in concurrent.futures.as_completed(futures):
+                        try:
+                            message = future.result()
+                            if message is not None:
+                                logging.info("TokenManager get token")
+                                print('result', True)
+                        except Exception as e:
+                            logging.error(e)
+                            print(e)
+            else:
+                sleep(30)
 
 
 class PostManager:
