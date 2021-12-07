@@ -18,7 +18,7 @@ class RabbitConnection:
         port = config.get(_connection_name, 'port')
         username = config.get(_connection_name, 'username')
         password = config.get(_connection_name, 'password')
-        queue_size = config.get(_connection_name, 'queue_size')
+        queue_size = int(config.get(_connection_name, 'queue_size'))
         while True:
             try:
                 credentials = pika.PlainCredentials(username, password)
@@ -101,5 +101,6 @@ class RabbitConnection:
                         data_len -= 1
                     except:
                         self.refresh_connection()
+                break
             except:
                 self.refresh_connection()

@@ -56,3 +56,4 @@ class CrawlCity:
         city_redis = CityRedis()
         for c in cities:
             city_redis.redis.zadd("city", {json.dumps(c): c["grade"]})
+            city_redis.redis.set(c["city"], json.dumps(c))

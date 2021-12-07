@@ -1,3 +1,5 @@
+import logging
+
 import requests
 
 
@@ -14,6 +16,7 @@ class TorRequest(requests.Session):
                 raise Exception
             return response
         except Exception as e:
+            logging.error(f"post url:{url} not work,{e}")
             print(e)
             return
 
@@ -27,5 +30,6 @@ class TorRequest(requests.Session):
                 raise Exception
             return response
         except Exception as e:
+            logging.error(f"get url:{url} not work,{e}")
             print(e)
             return
