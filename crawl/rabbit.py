@@ -19,3 +19,23 @@ class TokenWaitPost(RabbitConnection):
             city["last_post_date"] = new_database_last_post_date
             city["last_use_datetime"] = datetime.now().timestamp()
             CityRedis().redis.set(city["city"], json.dumps(city))
+
+
+class TokenPostException(RabbitConnection):
+    _connection_name = 'rabbit'
+    _route = 'divar_posts_Exceptions'
+    _queue_name = 'divar_posts_Exceptions'
+    _exchange = 'topic_posts_Exceptions'
+
+
+class TokenExpire(RabbitConnection):
+    _connection_name = 'rabbit'
+    _route = 'divar_expires'
+    _queue_name = 'divar_expires'
+    _exchange = 'topic_expires'
+
+    def format_expire(self, token):
+        return {"token": token, "deleted": True}
+
+    def publish_token(self, token):
+        self.push(data=self.format_expire(token))

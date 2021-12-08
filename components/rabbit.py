@@ -18,7 +18,7 @@ class RabbitConnection:
         port = config.get(_connection_name, 'port')
         username = config.get(_connection_name, 'username')
         password = config.get(_connection_name, 'password')
-        queue_size = int(config.get(_connection_name, 'queue_size'))
+        self.queue_size = int(config.get(_connection_name, 'queue_size'))
         while True:
             try:
                 credentials = pika.PlainCredentials(username, password)
@@ -29,7 +29,7 @@ class RabbitConnection:
             except:
                 time.sleep(5)
 
-        self.channel.queue_declare(queue=self._queue_name, durable=True, arguments={'x-max-length': queue_size})
+        self.channel.queue_declare(queue=self._queue_name, durable=True, arguments={'x-max-length': self.queue_size})
         self.channel.exchange_declare(exchange=self._exchange, exchange_type='direct')
         self.channel.queue_bind(exchange=self._exchange, routing_key=self._route, queue=self._queue_name)
 
@@ -59,7 +59,7 @@ class RabbitConnection:
                 self.refresh_connection()
 
     def create_bind(self, queue, exchange, exchange_type, routing_key):
-        self.channel.queue_declare(queue=queue, durable=True)
+        self.channel.queue_declare(queue=queue, durable=True, arguments={'x-max-length': self.queue_size})
         self.channel.exchange_declare(exchange=exchange, exchange_type=exchange_type, durable=True)
         self.channel.queue_bind(exchange=exchange,
                                 queue=queue,
@@ -68,7 +68,8 @@ class RabbitConnection:
     def get_len_queue(self):
         while True:
             try:
-                q = self.channel.queue_declare(queue=self._route, durable=True)
+                q = self.channel.queue_declare(queue=self._route, durable=True,
+                                               arguments={'x-max-length': self.queue_size})
                 return q.method.message_count
             except:
                 self.refresh_connection()
@@ -79,6 +80,8 @@ class RabbitConnection:
                 method_frame, header_frame, body = self.channel.basic_get(queue=self._queue_name)
                 self.channel.basic_ack(method_frame.delivery_tag)
                 return body
+            except AttributeError:
+                break
             except:
                 self.refresh_connection()
 

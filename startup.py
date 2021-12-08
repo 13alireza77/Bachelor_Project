@@ -1,9 +1,9 @@
 import logging
 
-from crawl.bot_manager import TokenManager
+from crawl.bot_manager import TokenManager, PostManager
 
 if __name__ == "__main__":
-    input_arg = "token"
+    input_arg = "post"
     logging.info(f"{input_arg}")
     print(input_arg)
     try:
@@ -19,8 +19,9 @@ if __name__ == "__main__":
             city_objects = c.to_city_objects()
             City().insert_many(city_objects)
         elif input_arg == "token":
-            c = TokenManager()
-            c.manage()
+            for i in range(10):
+                c = TokenManager()
+                c.manage()
 
     except Exception as e:
         logging.error(f"{e}")

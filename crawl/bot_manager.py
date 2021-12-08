@@ -5,8 +5,11 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from time import sleep
 
 from config.config import Config
+from crawl.divar.post import CrawlPost
 from crawl.divar.token import CrawlToken
-from crawl.rabbit import TokenWaitPost
+from crawl.formatter import PostFormater
+from crawl.models import PostDb
+from crawl.rabbit import TokenWaitPost, TokenPostException, TokenExpire
 from crawl.redisc import CityRedis
 
 
@@ -62,13 +65,23 @@ class TokenManager:
 
 class PostManager:
     def __init__(self):
-        self.crawler = CrawlPost()
+        self.crawler = CrawlPost
+
+    def manage_post(self, body):
+        if body:
+            status, mess = body
+            if status == -1:
+                TokenExpire().publish_token(mess)
+            elif status == -2:
+                TokenPostException().push(mess)
+            elif status == 1:
+                return PostFormater(mess).clean()
 
     def callback(self, ch, method, properties, body):
+        ch.basic_ack(delivery_tag=method.delivery_tag)
         token = body.decode()
         res = self.crawler.get_post(token)
-        post_rabbit(res)
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        self.manage_post(res)
 
     def consume_wait_posts(self):
         r = TokenWaitPost()
@@ -76,22 +89,43 @@ class PostManager:
         r.channel.basic_consume(queue="divar_wait_posts", on_message_callback=self.callback)
         r.channel.start_consuming()
 
+    def consume_wait_post(self):
+        crawl_posts = []
+        token_wait_post = TokenWaitPost()
+        for _ in range(10):
+            try:
+                body = token_wait_post.basic_get()
+                token = body.decode()
+                res = self.crawler.get_post(token)
+                post = self.manage_post(res)
+                if post:
+                    crawl_posts.append(post)
+            except Exception as e:
+                print(e)
+                logging.error(f"{e}")
+                break
+        return crawl_posts
+
     def manage(self):
         while True:
             try:
                 f_posts = TokenWaitPost().get_len_queue()
                 if f_posts > 0:
-                    with ThreadPoolExecutor(max_workers=200) as executor:
-                        # with ProcessPoolExecutor(max_workers=1) as executor:
-                        futures = [executor.submit(self.consume_wait_posts) for c in range(200)]
+                    with ThreadPoolExecutor(max_workers=100) as executor:
+                        futures = [executor.submit(self.consume_wait_post) for _ in range(100)]
+                        post_db = PostDb()
                         for future in concurrent.futures.as_completed(futures):
                             try:
                                 message = future.result()
+                                post_db.insert_many_ignore_duplicate(message)
                                 if message is not None:
                                     print('result', message)
+                                    logging.info(f"result, {message}")
                             except Exception as e:
                                 print(e)
+                                logging.error(f"{e}")
             except Exception as e:
                 print(e)
+                logging.error(f"{e}")
                 sleep(10)
                 continue
