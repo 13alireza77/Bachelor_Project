@@ -1,4 +1,5 @@
 import datetime
+import logging
 import re
 
 from unidecode import unidecode
@@ -79,10 +80,10 @@ class PostFormater(BaseFormatter):
     def __init__(self, post):
         super().__init__()
         self.post = post
-        self.keyPaths = [["data", "category"], ["data", "city"], ["widgets", "description"],
-                         ["widgets", "header"], ["widgets", "list_data"],
-                         ["widgets", "car_inspection", "demo_inspection", "car_inspection_scores"], ["token"],
-                         ["widgets", "breadcrumb"]]
+        self.search_fields = {"date": ["widgets", "header", "date"],
+                              "categories": ["widgets", "breadcrumb", "categories"],
+                              "city": ["data", "city"],
+                              "suggestions": ["widgets", "suggestions", "widget_list"]}
 
     @staticmethod
     def get_dict_value_from_path(listKeys, jsonData):
@@ -116,90 +117,31 @@ class PostFormater(BaseFormatter):
             week = int(unidecode(week))
             return datetime.date.today() - datetime.timedelta(weeks=week)
 
-    # def get_trans(self, word):
-    #     trans_db = Translate()
-    #     trans = trans_db.get_translate(word)
-    #     if trans == "Exception":
-    #         trans = Transelator().transelator(word)["sentences"][0]["trans"]
-    #         trans = trans.replace(" ", "_")
-    #         trans = trans.lower()
-    #         if trans:
-    #             trans_db.insert_word(word, trans)
-    #     if trans:
-    #         return trans
-    #     return word
-
-    # def get_int(self, word):
-    #     persian_numbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹']
-    #     if type(word) is not str or not any(c in word for c in persian_numbers):
-    #         return word
-    #     else:
-    #         word = persian.convert_fa_numbers(word)
-    #         if "تومان" in word:
-    #             word = re.sub("\D", "", word)
-    #         if word.isnumeric():
-    #             return int(word)
-    #         return word
-
-    def get_important_items(self, new_jsn, jsn):
-        for path in self.keyPaths:
-            val = self.get_dict_value_from_path(path, jsn)
-            if val:
-                # if path[-1] == "list_data":
-                #     DicData = {}
-                #     for v in val:
-                #         if "value" in v:
-                #             DicData[self.get_trans(v["title"])] = self.get_int(v["value"])
-                #         elif "items" in v:
-                #             DicItems = {}
-                #             for d in v["items"]:
-                #                 if "value" in d:
-                #                     DicItems[self.get_trans(d["title"])] = self.get_int(d["value"])
-                #                 elif "available" in d:
-                #                     DicItems[self.get_trans(d["title"])] = self.get_int(d["available"])
-                #             DicData[self.get_trans(v["title"])] = DicItems
-                #     new_jsn[path[-1]] = DicData
-                # elif path[-1] == "car_inspection_scores":
-                #     DictData = {}
-                #     for v in val:
-                #         if "score_color" in v and "percentage_score" in v:
-                #             DictData[self.get_trans(v["title"])] = self.get_int(v["percentage_score"])
-                #         elif "score_color" in v and "score_color" in v:
-                #             DictData[self.get_trans(v["title"])] = self.get_int(v["score_color"])
-                #     new_jsn[path[-1]] = DictData
-                if path[-1] == "breadcrumb":
-                    ListData = []
-                    for d in reversed(val["categories"]):
-                        ListData.append(d["second_slug"])
-                    val["lf_slugs"] = ' - '.join(ListData)
-                    new_jsn[path[-1]] = val
-                elif path[-1] == "header":
-                    val["date"] = str(self.convert_date(val["date"]))
-                    new_jsn[path[-1]] = val
-                else:
-                    new_jsn[path[-1]] = val
-        return new_jsn
+    def add_important_items(self, jsn_data):
+        for k, v in self.search_fields.items():
+            try:
+                if k == "date":
+                    jsn_data[k] = self.convert_date(jsn_data["widgets"]["header"]["date"])
+                elif k == "categories":
+                    jsn_data[k] = []
+                    categories = jsn_data["widgets"]["breadcrumb"]["categories"]
+                    for dict in categories:
+                        jsn_data[k].append(dict.get("title"))
+                        jsn_data[k].append(dict.get("second_slug"))
+                        jsn_data[k].append(dict.get("slug"))
+                elif k == "city":
+                    jsn_data[k] = jsn_data["data"]["city"]
+                elif k == "suggestions":
+                    jsn_data[k] = []
+                    suggestions = jsn_data["widgets"]["suggestions"]["widget_list"]
+                    for dict in suggestions:
+                        jsn_data[k].extend(dict["data"]["items"][0]["action"]["payload"]["suggested_tokens"])
+            except Exception as e:
+                logging.error(f"{e}")
+                print(e)
+                continue
 
     def clean(self):
-        result = self._clean_empty(self.post)
-        finaljsn = self.get_important_items({}, result)
-        return finaljsn
-
-# class ContactFormater(BaseFormatter):
-#     def __init__(self, phone, token):
-#         super().__init__()
-#         self.phone = phone
-#         self.token = token
-#
-#     def contact_for_ads(self):
-#         return {
-#             "token": self.token,
-#             "widgets": {
-#                 "contact": {
-#                     "phone": self.phone
-#                 }
-#             }
-#         }
-#
-#     def contact_for_user(self):
-#         return {"phone": self.phone}
+        clean_data = self._clean_empty(self.post)
+        self.add_important_items(clean_data)
+        return clean_data
