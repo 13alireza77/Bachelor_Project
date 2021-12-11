@@ -57,7 +57,7 @@ class TokenManager:
                                 logging.info("TokenManager get token")
                                 print('result', True)
                         except Exception as e:
-                            logging.error(e)
+                            logging.error(f"{e}")
                             print(e)
             else:
                 sleep(30)
@@ -90,7 +90,7 @@ class PostManager:
         r.channel.start_consuming()
 
     def consume_wait_post(self):
-        crawl_posts = []
+        temp = []
         token_wait_post = TokenWaitPost()
         for _ in range(10):
             try:
@@ -99,12 +99,12 @@ class PostManager:
                 res = self.crawler.get_post(token)
                 post = self.manage_post(res)
                 if post:
-                    crawl_posts.append(post)
+                    temp.append(post)
             except Exception as e:
                 print(e)
                 logging.error(f"{e}")
                 break
-        return crawl_posts
+        return temp
 
     def manage(self):
         while True:
@@ -112,18 +112,21 @@ class PostManager:
                 f_posts = TokenWaitPost().get_len_queue()
                 if f_posts > 0:
                     with ThreadPoolExecutor(max_workers=100) as executor:
+                        crawl_posts = []
                         futures = [executor.submit(self.consume_wait_post) for _ in range(100)]
-                        post_db = PostDb()
                         for future in concurrent.futures.as_completed(futures):
                             try:
                                 message = future.result()
-                                post_db.insert_many_ignore_duplicate(message)
+                                crawl_posts.extend(message)
                                 if message is not None:
                                     print('result', message)
                                     logging.info(f"result, {message}")
                             except Exception as e:
                                 print(e)
                                 logging.error(f"{e}")
+                        PostDb().insert_many_ignore_duplicate(self.crawl_posts)
+                        del crawl_posts
+
             except Exception as e:
                 print(e)
                 logging.error(f"{e}")
