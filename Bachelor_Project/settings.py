@@ -39,6 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'rest_framework',
+    'drf_spectacular',
+    'django_filters',
+
     'user_api',
 ]
 
@@ -129,3 +133,38 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'user_api.CustomUser'
+LOGIN_URL = "rest_framework:login"
+LOGOUT_URL = "rest_framework:logout"
+LOGIN_REDIRECT_URL = "swagger"
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PERMISSION_CLASSES': (),
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        "rest_framework.authentication.BasicAuthentication",
+    ],
+    "TEST_REQUEST_DEFAULT_FORMAT": "json",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.AcceptHeaderVersioning",
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '15/day',
+        'user': '40/day'
+    },
+}
+
+SWAGGER_SETTINGS = {
+    "exclude_namespaces": ["internal_apis"],
+    'SECURITY_DEFINITIONS': {
+        'Basic': {
+            'type': 'basic'
+        },
+    },
+    "DOC_EXPANSION": "none",
+    "APIS_SORTER": "alpha",
+    "JSON_EDITOR": True,
+    "SHOW_REQUEST_HEADERS": True,
+    "USE_SESSION_AUTH": True,
+    "OPERATIONS_SORTER": "method",
+    "TAGS_SORTER": "alpha",
+    "LOGIN_URL": "rest_framework:login",
+    "LOGOUT_URL": "rest_framework:logout",
+}
