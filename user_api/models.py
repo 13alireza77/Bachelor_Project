@@ -85,5 +85,11 @@ class RequestHistory(models.Model):
 
 
 class AccessLevel(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, unique=True)
     max_number_of_data = models.IntegerField(blank=True, null=True)
+
+    def update_max_number_of_data(self, used_data: int):
+        if self.max_number_of_data:
+            temp = self.max_number_of_data - used_data
+            self.max_number_of_data = 0 if temp < 1 else temp
+            self.save()

@@ -17,13 +17,17 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from django.contrib.auth.decorators import login_required
+from django.conf.urls.static import static
+from django.conf import settings
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', login_required(SpectacularSwaggerView.as_view(url_name='schema')), name='swagger-ui'),
-    path('api/schema/', SpectacularAPIView.as_view(api_version="v1"), name='schema'),
-    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    path('api-auth/', include('rest_framework.urls')),
-    path("", include('user_api.api.urls')),
+                  path('admin/', admin.site.urls),
+                  path('', login_required(SpectacularSwaggerView.as_view(url_name='schema')), name='swagger-ui'),
+                  path('api/schema/', SpectacularAPIView.as_view(api_version="v1"), name='schema'),
+                  path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+                  path('api-auth/', include('rest_framework.urls')),
+                  path("", include('user_api.api.urls')),
 
-]
+              ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
