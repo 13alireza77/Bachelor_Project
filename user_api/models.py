@@ -78,10 +78,14 @@ class CustomUser(AbstractUser):
 
 class RequestHistory(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    request_id = models.CharField(max_length=50)
+    request_id = models.CharField(max_length=50, unique=True)
     create_date = models.DateTimeField(auto_now_add=True)
     count_data = models.IntegerField(blank=True, null=True)
     status = models.BooleanField(blank=True, null=True)
+
+    @staticmethod
+    def create_request_history(user, request_id, count_data=None, status=None):
+        return RequestHistory.objects.create(user=user, request_id=request_id, count_data=count_data, status=status)
 
 
 class AccessLevel(models.Model):

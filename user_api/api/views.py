@@ -18,7 +18,7 @@ from crawl.divar.post import CrawlPost
 from crawl.formatter import PostFormater
 from user_api.api.serializers import UserSerializer, AccessLevelSerializer, RequestSerializer, SuggestionsSerializer
 from user_api.celery_task import render_xlsx_from_mongo
-from user_api.models import AccessLevel
+from user_api.models import AccessLevel, RequestHistory
 
 
 @extend_schema_view(
@@ -50,6 +50,7 @@ class RequestViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
     crawl_post = CrawlPost()
     static_suggestions = "resources/static/suggestions"
+    max_suggestions_count = 3
     static_data = "resources/static/data"
 
     def get_serializer_class(self):
@@ -71,14 +72,18 @@ class RequestViewSet(GenericViewSet):
             access_level = self.get_queryset().get(user=self.request.user)
         except Exception:
             return Response("No access level defined for this user")
+        if access_level.max_number_of_data and access_level.max_number_of_data < 1:
+            return Response(f"The number of your requests has been completed")
         status, response = self.crawl_post.get_post(token)
         if status != 1:
             return Response(f"{token} expired or is wrong")
         try:
-            json_data = PostFormater(response).clean()["suggestions"][:3]
+            json_data = PostFormater(response).clean()["suggestions"][:self.max_suggestions_count]
         except Exception:
             return Response("cant get suggestions")
         request_id = str(uuid.uuid4())
+        RequestHistory.create_request_history(user=self.request.user, request_id=request_id,
+                                              count_data=self.max_suggestions_count)
         access_level.update_max_number_of_data(len(json_data))
         render_xlsx_from_mongo(request_id=request_id, static_path=self.static_suggestions, suggestions=json_data)
         return Response(request_id)
@@ -96,4 +101,10 @@ class RequestViewSet(GenericViewSet):
                                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                 headers={"Content-Disposition": f"attachment; filename={request_id}.xlsx"})
         else:
-            return Response("not exist")
+            try:
+                status = RequestHistory.objects.get(request_id=request_id).status
+                if status:
+                    return Response("sth went wrong, request for get suggestions again")
+                return Response("process of getting suggestions not finished")
+            except:
+                return Response("invalid request_id")
