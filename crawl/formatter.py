@@ -83,7 +83,8 @@ class PostFormater(BaseFormatter):
         self.search_fields = {"date": ["widgets", "header", "date"],
                               "categories": ["widgets", "breadcrumb", "categories"],
                               "city": ["data", "city"],
-                              "suggestions": ["widgets", "suggestions", "widget_list"]}
+                              "suggestions": ["widgets", "suggestions", "widget_list"],
+                              "title": ["data", "seo"]}
 
     @staticmethod
     def get_dict_value_from_path(listKeys, jsonData):
@@ -129,6 +130,7 @@ class PostFormater(BaseFormatter):
                         jsn_data[k].append(dict.get("title"))
                         jsn_data[k].append(dict.get("second_slug"))
                         jsn_data[k].append(dict.get("slug"))
+                    jsn_data[k] = '|'.join(jsn_data[k])
                 elif k == "city":
                     jsn_data[k] = jsn_data["data"]["city"]
                 elif k == "suggestions":
@@ -136,6 +138,8 @@ class PostFormater(BaseFormatter):
                     suggestions = jsn_data["widgets"]["suggestions"]["widget_list"]
                     for dict in suggestions:
                         jsn_data[k].extend(dict["data"]["items"][0]["action"]["payload"]["suggested_tokens"])
+                elif k == "title":
+                    jsn_data[k] = jsn_data["data"]["seo"]["title"]
             except Exception as e:
                 logging.error(f"{e}")
                 print(e)
