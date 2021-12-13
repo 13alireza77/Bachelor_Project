@@ -25,12 +25,14 @@ class AccessLevelSerializer(serializers.ModelSerializer):
 
 
 class DatasSerializer(serializers.Serializer):
-    from_date = serializers.DateField(format="%Y-%m-%d", required=True)
-    to_date = serializers.DateField(format="%Y-%m-%d", required=True)
+    from_date = serializers.DateTimeField(format="%Y-%m-%d  %H:%M:%S", required=True)
+    to_date = serializers.DateTimeField(format="%Y-%m-%d  %H:%M:%S", required=True)
+    page = serializers.IntegerField(required=True, help_text="page count is 100", min_value=0, allow_null=False)
     categories = serializers.CharField(max_length=50, allow_null=True, allow_blank=False, required=False,
                                        help_text="split categories by ',' ")
     city = serializers.CharField(required=False, allow_null=True, allow_blank=False, help_text="name of city")
     title = serializers.CharField(required=False, allow_null=True, allow_blank=False, help_text="or subtitle")
+    type = serializers.CharField(required=False, max_length=10, help_text="data or dict")
 
 
 class SuggestionsSerializer(serializers.Serializer):

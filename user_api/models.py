@@ -83,6 +83,9 @@ class RequestHistory(models.Model):
     count_data = models.IntegerField(blank=True, null=True)
     status = models.BooleanField(blank=True, null=True)
 
+    def __str__(self):
+        return self.request_id
+
     @staticmethod
     def create_request_history(user, request_id, count_data=None, status=None):
         return RequestHistory.objects.create(user=user, request_id=request_id, count_data=count_data, status=status)
@@ -91,6 +94,9 @@ class RequestHistory(models.Model):
 class AccessLevel(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, unique=True)
     max_number_of_data = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return self.user.email
 
     def update_max_number_of_data(self, used_data: int):
         if self.max_number_of_data:

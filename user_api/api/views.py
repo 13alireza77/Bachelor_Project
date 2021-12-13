@@ -19,7 +19,7 @@ from crawl.formatter import PostFormater
 from user_api.api.serializers import UserSerializer, AccessLevelSerializer, SuggestionsSerializer, \
     DatasSerializer
 from user_api.models import AccessLevel, RequestHistory
-from user_api.tasks import render_suggestions_xlsx
+from user_api.tasks import render_suggestions_xlsx, render_datas_xlsx
 
 
 class SuggestionsResponse(Response):
@@ -46,7 +46,9 @@ class SuggestionsResponse(Response):
 
 
 class DatasResponse(Response):
-    def __init__(self, request_id, static_datas, types, from_date, to_date, categories=None, city=None,
+    def __init__(self, request_id, static_datas, types, from_date, to_date, page: int, page_count: int, user,
+                 categories=None,
+                 city=None,
                  title=None, data=None, status=None,
                  template_name=None, headers=None, exception=False, content_type=None):
         super().__init__(data, status, template_name, headers, exception, content_type)
@@ -58,11 +60,16 @@ class DatasResponse(Response):
         self.categories = categories
         self.city = city
         self.title = title
+        self.page = page
+        self.page_count = page_count
+        self.user = user
 
     def close(self):
         super(DatasResponse, self).close()
         try:
-            pass
+            render_datas_xlsx(request_id=self.request_id, static_path=self.static_datas, from_date=self.from_date,
+                              to_date=self.to_date, categories=self.categories, city=self.city, title=self.title,
+                              types=self.types, page=self.page, page_count=self.page_count, user=self.user)
         except Exception as e:
             request_history = RequestHistory.objects.get(request_id=self.request_id)
             request_history.status = 0
@@ -92,15 +99,22 @@ class AccessLevelViewSet(generics.CreateAPIView, viewsets.ViewSet):
     request_suggestions=extend_schema(tags=[_("suggestions")], summary=_("get suggestions of token")),
     get_request_suggestions_xlsx=extend_schema(tags=[_("suggestions")], summary=(_("get suggestions xlsx")),
                                                parameters=[
-                                                   OpenApiParameter("request_id", OpenApiTypes.STR, required=True), ])
+                                                   OpenApiParameter("request_id", OpenApiTypes.STR, required=True), ]),
+
+    request_datas_xlsx=extend_schema(tags=[_("datas")], summary=_("get datas")),
+    get_request_datas_xlsx=extend_schema(tags=[_("datas")], summary=(_("get datas xlsx")),
+                                         parameters=[
+                                             OpenApiParameter("request_id", OpenApiTypes.STR, required=True), ])
+
 )
 class RequestViewSet(GenericViewSet):
     queryset = AccessLevel.objects.all()
     permission_classes = (IsAuthenticated,)
     crawl_post = CrawlPost()
     static_suggestions = "resources/static/suggestions"
-    max_suggestions_count = 3
     static_data = "resources/static/data"
+    max_suggestions_count = 20
+    page_count = 500
 
     def get_serializer_class(self):
         if self.action == 'request_suggestions':
@@ -114,11 +128,39 @@ class RequestViewSet(GenericViewSet):
         serializer.is_valid(raise_exception=True)
         from_date = serializer.validated_data["from_date"]
         to_date = serializer.validated_data["to_date"]
+        page = serializer.validated_data["page"]
         categories = serializer.validated_data.get("categories")
         city = serializer.validated_data.get("city")
         title = serializer.validated_data.get("title")
+        types = serializer.validated_data.get("type")
+        if types is None:
+            types = "data"
         request_id = str(uuid.uuid4())
         RequestHistory.create_request_history(user=self.request.user, request_id=request_id)
+        return DatasResponse(data=request_id, request_id=request_id, static_datas=self.static_data, types=types,
+                             from_date=from_date, to_date=to_date, categories=categories, city=city, title=title,
+                             page=page, page_count=self.page_count, user=self.request.user)
+
+    @action(methods=['get'], detail=False)
+    def get_request_datas_xlsx(self, *args, **kwargs):
+        query_params = self.request.query_params
+        request_id = query_params.get('request_id')
+        fs = FileSystemStorage(
+            base_url="/static/",
+            location=settings.STATICFILES_DIRS[0]
+        )
+        if fs.exists(f"datas/{request_id}.xlsx"):
+            return HttpResponse(fs.open(f"datas/{request_id}.xlsx"),
+                                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                headers={"Content-Disposition": f"attachment; filename={request_id}.xlsx"})
+        else:
+            try:
+                status = RequestHistory.objects.get(request_id=request_id).status
+                if status:
+                    return Response("sth went wrong, request for get datas again")
+                return Response("process of getting datas not finished")
+            except:
+                return Response("invalid request_id")
 
     @action(methods=['post'], detail=False)
     def request_suggestions(self, *args, **kwargs):
