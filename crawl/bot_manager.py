@@ -48,7 +48,7 @@ class TokenManager:
     def manage(self):
         while True:
             if self.cities:
-                with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
                     futures = [executor.submit(self.run_city, c) for c in self.cities]
                     for future in concurrent.futures.as_completed(futures):
                         try:
@@ -111,21 +111,19 @@ class PostManager:
             try:
                 f_posts = TokenWaitPost().get_len_queue()
                 if f_posts > 0:
-                    with ThreadPoolExecutor(max_workers=100) as executor:
-                        crawl_posts = []
+                    with ThreadPoolExecutor(max_workers=200) as executor:
                         futures = [executor.submit(self.consume_wait_post) for _ in range(100)]
+                        postdb = PostDb()
                         for future in concurrent.futures.as_completed(futures):
                             try:
                                 message = future.result()
-                                crawl_posts.extend(message)
+                                postdb.insert_many_ignore_duplicate(message)
                                 if message is not None:
                                     print('result', message)
                                     logging.info(f"result, {message}")
                             except Exception as e:
                                 print(e)
                                 logging.error(f"{e}")
-                        PostDb().insert_many_ignore_duplicate(self.crawl_posts)
-                        del crawl_posts
 
             except Exception as e:
                 print(e)

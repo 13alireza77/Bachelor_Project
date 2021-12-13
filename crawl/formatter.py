@@ -102,21 +102,21 @@ class PostFormater(BaseFormatter):
     @staticmethod
     def convert_date(strD):
         if strD == "دیروز":
-            return datetime.date.today() - datetime.timedelta(days=1)
+            return datetime.datetime.today() - datetime.timedelta(days=1)
         elif strD == "پریروز":
-            return datetime.date.today() - datetime.timedelta(days=2)
+            return datetime.datetime.today() - datetime.timedelta(days=2)
         elif strD == "لحظاتی پیش" or strD == "دقایقی پیش" or strD == "یک ربع پیش" or ("ساعت پیش" in strD):
-            return datetime.date.today()
+            return datetime.datetime.today()
         elif "روز پیش" in strD:
             day = strD.split()[0]
             day = int(unidecode(day))
-            return datetime.date.today() - datetime.timedelta(days=day)
+            return datetime.datetime.today() - datetime.timedelta(days=day)
         elif strD == "هفته پیش":
-            return datetime.date.today() - datetime.timedelta(weeks=1)
+            return datetime.datetime.today() - datetime.timedelta(weeks=1)
         elif "هفته پیش" in strD:
             week = strD.split()[0]
             week = int(unidecode(week))
-            return datetime.date.today() - datetime.timedelta(weeks=week)
+            return datetime.datetime.today() - datetime.timedelta(weeks=week)
 
     def add_important_items(self, jsn_data):
         for k, v in self.search_fields.items():
@@ -134,8 +134,8 @@ class PostFormater(BaseFormatter):
                 elif k == "city":
                     jsn_data[k] = jsn_data["data"]["city"]
                 elif k == "suggestions":
-                    jsn_data[k] = []
                     suggestions = jsn_data["widgets"]["suggestions"]["widget_list"]
+                    jsn_data[k] = []
                     for dict in suggestions:
                         jsn_data[k].extend(dict["data"]["items"][0]["action"]["payload"]["suggested_tokens"])
                 elif k == "title":

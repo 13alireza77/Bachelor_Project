@@ -1,10 +1,10 @@
+import logging
 import uuid
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.storage import FileSystemStorage
-from django.http import FileResponse, HttpResponse
-from django.shortcuts import redirect
+from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiParameter
@@ -16,9 +16,58 @@ from rest_framework.viewsets import GenericViewSet
 
 from crawl.divar.post import CrawlPost
 from crawl.formatter import PostFormater
-from user_api.api.serializers import UserSerializer, AccessLevelSerializer, RequestSerializer, SuggestionsSerializer
-from user_api.celery_task import render_xlsx_from_mongo
+from user_api.api.serializers import UserSerializer, AccessLevelSerializer, SuggestionsSerializer, \
+    DatasSerializer
 from user_api.models import AccessLevel, RequestHistory
+from user_api.tasks import render_suggestions_xlsx
+
+
+class SuggestionsResponse(Response):
+    def __init__(self, json_data, request_id, static_suggestions, types, data=None, status=None,
+                 template_name=None,
+                 headers=None, exception=False,
+                 content_type=None):
+        super().__init__(data, status, template_name, headers, exception, content_type)
+        self.request_id = request_id
+        self.json_data = json_data
+        self.static_suggestions = static_suggestions
+        self.types = types
+
+    def close(self):
+        super(SuggestionsResponse, self).close()
+        try:
+            render_suggestions_xlsx(request_id=self.request_id, static_path=self.static_suggestions,
+                                    suggestions=self.json_data, types=self.types)
+        except Exception as e:
+            request_history = RequestHistory.objects.get(request_id=self.request_id)
+            request_history.status = 0
+            request_history.save()
+            logging.error(e)
+
+
+class DatasResponse(Response):
+    def __init__(self, request_id, static_datas, types, from_date, to_date, categories=None, city=None,
+                 title=None, data=None, status=None,
+                 template_name=None, headers=None, exception=False, content_type=None):
+        super().__init__(data, status, template_name, headers, exception, content_type)
+        self.request_id = request_id
+        self.static_datas = static_datas
+        self.types = types
+        self.from_date = from_date
+        self.to_date = to_date
+        self.categories = categories
+        self.city = city
+        self.title = title
+
+    def close(self):
+        super(DatasResponse, self).close()
+        try:
+            pass
+        except Exception as e:
+            request_history = RequestHistory.objects.get(request_id=self.request_id)
+            request_history.status = 0
+            request_history.save()
+            logging.error(e)
 
 
 @extend_schema_view(
@@ -57,17 +106,28 @@ class RequestViewSet(GenericViewSet):
         if self.action == 'request_suggestions':
             return SuggestionsSerializer
         else:
-            return RequestSerializer
+            return DatasSerializer
 
     @action(methods=['post'], detail=False)
-    def request_xlsx(self, *args, **kwargs):
-        pass
+    def request_datas_xlsx(self, *args, **kwargs):
+        serializer = self.get_serializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        from_date = serializer.validated_data["from_date"]
+        to_date = serializer.validated_data["to_date"]
+        categories = serializer.validated_data.get("categories")
+        city = serializer.validated_data.get("city")
+        title = serializer.validated_data.get("title")
+        request_id = str(uuid.uuid4())
+        RequestHistory.create_request_history(user=self.request.user, request_id=request_id)
 
     @action(methods=['post'], detail=False)
     def request_suggestions(self, *args, **kwargs):
         serializer = self.get_serializer(data=self.request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data["token"]
+        types = serializer.validated_data.get("type")
+        if types is None:
+            types = "data"
         try:
             access_level = self.get_queryset().get(user=self.request.user)
         except Exception:
@@ -85,8 +145,8 @@ class RequestViewSet(GenericViewSet):
         RequestHistory.create_request_history(user=self.request.user, request_id=request_id,
                                               count_data=self.max_suggestions_count)
         access_level.update_max_number_of_data(len(json_data))
-        render_xlsx_from_mongo(request_id=request_id, static_path=self.static_suggestions, suggestions=json_data)
-        return Response(request_id)
+        return SuggestionsResponse(data=request_id, request_id=request_id, json_data=json_data,
+                                   static_suggestions=self.static_suggestions, types=types)
 
     @action(methods=['get'], detail=False)
     def get_request_suggestions_xlsx(self, *args, **kwargs):

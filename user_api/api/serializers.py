@@ -24,14 +24,15 @@ class AccessLevelSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class RequestSerializer(serializers.Serializer):
+class DatasSerializer(serializers.Serializer):
     from_date = serializers.DateField(format="%Y-%m-%d", required=True)
     to_date = serializers.DateField(format="%Y-%m-%d", required=True)
     categories = serializers.CharField(max_length=50, allow_null=True, allow_blank=False, required=False,
                                        help_text="split categories by ',' ")
     city = serializers.CharField(required=False, allow_null=True, allow_blank=False, help_text="name of city")
-    title = serializers.CharField(required=False, allow_null=True, allow_blank=False)
+    title = serializers.CharField(required=False, allow_null=True, allow_blank=False, help_text="or subtitle")
 
 
 class SuggestionsSerializer(serializers.Serializer):
     token = serializers.CharField(required=True, max_length=15)
+    type = serializers.CharField(required=False, max_length=10, help_text="data or dict")
