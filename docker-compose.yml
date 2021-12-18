@@ -38,11 +38,6 @@ services:
     container_name: mongodb
     volumes:
       - ./.docker/mongodb/data/db:/data/db
-    #     - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
-    #    environment:
-    #      - MONGO_INITDB_ROOT_USERNAME=alireza
-    #      - MONGO_INITDB_ROOT_PASSWORD=mongodb1377
-    #      - MONGO_INITDB_DATABASE=admin
     ports:
       - 27017:27017
     command: --auth
