@@ -119,8 +119,8 @@ class PostManager:
                                 message = future.result()
                                 postdb.insert_many_ignore_duplicate(message)
                                 if message is not None:
-                                    print('result', message)
-                                    logging.info(f"result, {message}")
+                                    print('len_result', len(message))
+                                    logging.info(f"len_result, {len(message)}")
                             except Exception as e:
                                 print(e)
                                 logging.error(f"{e}")

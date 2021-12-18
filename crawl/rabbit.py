@@ -18,6 +18,7 @@ class TokenWaitPost(RabbitConnection):
             TokenWaitPost().insert_many_rabbit(tokens)
             city["last_post_date"] = new_database_last_post_date
             city["last_use_datetime"] = datetime.now().timestamp()
+            print(city["city"], city)
             CityRedis().redis.set(city["city"], json.dumps(city))
 
 

@@ -56,7 +56,7 @@ def render_datas_xlsx(request_id, static_path, from_date, to_date, user, page: i
     if categories:
         query["categories"] = {'$regex': ''.join([f"{c}|" for c in categories])[:-1]}
     if city:
-        query["title"] = {'$regex': f"{city}"}
+        query["city"] = {'$regex': f"{city}"}
     if title:
         query["title"] = {'$regex': f"{title}"}
     result = postdb.find(query)

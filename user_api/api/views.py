@@ -112,7 +112,7 @@ class RequestViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
     crawl_post = CrawlPost()
     static_suggestions = "resources/static/suggestions"
-    static_data = "resources/static/data"
+    static_data = "resources/static/datas"
     max_suggestions_count = 20
     page_count = 500
 
@@ -135,6 +135,8 @@ class RequestViewSet(GenericViewSet):
         types = serializer.validated_data.get("type")
         if types is None:
             types = "data"
+        if categories is not None:
+            categories = [c for c in categories.strip().split(',')]
         request_id = str(uuid.uuid4())
         RequestHistory.create_request_history(user=self.request.user, request_id=request_id)
         return DatasResponse(data=request_id, request_id=request_id, static_datas=self.static_data, types=types,
