@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os
 from pathlib import Path
+import logging.config
 
 from config.config import Config
 
@@ -22,12 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-v!j39i%(9j_8(s@pbpf!h-k-gelyx!=*68e#&fj+u5$7!_*f0f'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -180,4 +181,26 @@ SWAGGER_SETTINGS = {
     "TAGS_SORTER": "alpha",
     "LOGIN_URL": "rest_framework:login",
     "LOGOUT_URL": "rest_framework:logout",
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            'format': '%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(module)s %(process)d %(thread)d %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+        },
+    },
+    'loggers': {
+        '': {
+            'level': 'DEBUG',
+            'handlers': ['console', ],
+        },
+    },
 }
