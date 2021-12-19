@@ -70,13 +70,13 @@ services:
       - ./host-folder/:/var/lib/postgresql/data/
     restart: always
   token_crawler:
-    image: bachelor_project:latest
+    image: bachelor_project_bachelor_project:latest
     volumes:
       - ".:/app"
     container_name: token_crawler
     command: python startup_token_crawler.py
   post_crawler:
-    image: bachelor_project:latest
+    image: bachelor_project_bachelor_project:latest
     volumes:
       - ".:/app"
     container_name: post_crawler
