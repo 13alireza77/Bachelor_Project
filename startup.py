@@ -1,9 +1,10 @@
 import logging
+import sys
 
 from crawl.bot_manager import TokenManager, PostManager
 
 if __name__ == "__main__":
-    input_arg = "post"
+    input_arg = sys.argv[1]
     print(input_arg)
     logging.info(f"run {input_arg} service")
     try:
