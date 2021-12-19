@@ -66,7 +66,7 @@ class TokenManager:
 
 class PostManager:
     def __init__(self):
-        self.crawler = CrawlPost
+        self.crawler = CrawlPost()
 
     def manage_post(self, body):
         if body:
