@@ -9,7 +9,6 @@ services:
       - ".:/app"
     container_name: bachelor_project
     restart: always
-    #    command: python manage.py runserver 0.0.0.0:1077
     healthcheck:
       test: curl --fail -s http://localhost:8000/ || exit 1
       interval: 10s
