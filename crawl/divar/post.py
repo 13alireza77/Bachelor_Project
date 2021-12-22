@@ -4,11 +4,12 @@ from components.requests import TorRequest
 
 
 class CrawlPost:
-    @staticmethod
-    def get_post(token):
+    tor_request = TorRequest()
+
+    def get_post(self, token):
         try:
             url = f"https://api.divar.ir/v5/posts/{token}"
-            resp = TorRequest().get(url=url).json()
+            resp = self.tor_request.get(url=url).json()
             if resp["error"] != 0:
                 print("expire")
                 logging.info(f"post of {token} expire")

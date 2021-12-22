@@ -1,0 +1,105 @@
+version: "3.2"
+services:
+  bachelor_project:
+    build: .
+    command: gunicorn Bachelor_Project.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    ports:
+      - "8000:8000"
+    volumes:
+      - ".:/app"
+    container_name: bachelor_project
+    restart: always
+    healthcheck:
+      test: curl --fail -s http://localhost:8000/ || exit 1
+      interval: 10s
+      start_period: 5s
+      timeout: 10s
+      retries: 5
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    volumes:
+      - ./.docker/rabbitmq/etc/:/etc/rabbitmq/
+      - ./.docker/rabbitmq/data/:/var/lib/rabbitmq/
+    environment:
+      RABBITMQ_DEFAULT_USER: alireza
+      RABBITMQ_DEFAULT_PASS: rabbitmq1377
+    ports:
+      - 5672:5672
+      - 15672:15672
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2000M
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    volumes:
+      - ./.docker/mongodb/data/db:/data/db
+    ports:
+      - 27017:27017
+    command: --auth
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2000M
+  redis:
+    image: redis:alpine
+    container_name: redis
+    command: redis-server --requirepass redis1377
+    ports:
+      - 6379:6379
+    volumes:
+      - $PWD/redis-data:/var/lib/redis
+      - $PWD/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    restart: always
+  postgres:
+    image: postgres
+    container_name: postgres
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=alireza
+      - POSTGRES_PASSWORD=postgres1377
+      - POSTGRES_DB=bachelor_project
+    volumes:
+      - ./host-folder/:/var/lib/postgresql/data/
+    restart: always
+  token_crawler:
+    image: bachelor_project_bachelor_project:latest
+    volumes:
+      - ".:/app"
+    container_name: token_crawler
+    command: python startup_token_crawler.py
+  post_crawler:
+    image: bachelor_project_bachelor_project:latest
+    volumes:
+      - ".:/app"
+    container_name: post_crawler
+    command: python startup_post_crawler.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

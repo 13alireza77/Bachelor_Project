@@ -60,12 +60,13 @@ class TokenManager:
                             logging.error(f"{e}")
                             print(e)
             else:
-                sleep(30)
+                sleep(60)
+            sleep(0.1)
 
 
 class PostManager:
     def __init__(self):
-        self.crawler = CrawlPost
+        self.crawler = CrawlPost()
 
     def manage_post(self, body):
         if body:
@@ -92,7 +93,7 @@ class PostManager:
     def consume_wait_post(self):
         temp = []
         token_wait_post = TokenWaitPost()
-        for _ in range(10):
+        for _ in range(50):
             try:
                 body = token_wait_post.basic_get()
                 token = body.decode()
@@ -124,9 +125,9 @@ class PostManager:
                             except Exception as e:
                                 print(e)
                                 logging.error(f"{e}")
-
             except Exception as e:
                 print(e)
                 logging.error(f"{e}")
-                sleep(10)
+                sleep(60)
                 continue
+            sleep(0.1)

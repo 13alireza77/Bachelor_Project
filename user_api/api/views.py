@@ -184,7 +184,7 @@ class RequestViewSet(GenericViewSet):
         try:
             json_data = PostFormater(response).clean()["suggestions"][:self.max_suggestions_count]
         except Exception:
-            return Response("cant get suggestions")
+            return Response("has no suggestions")
         request_id = str(uuid.uuid4())
         RequestHistory.create_request_history(user=self.request.user, request_id=request_id,
                                               count_data=self.max_suggestions_count)
