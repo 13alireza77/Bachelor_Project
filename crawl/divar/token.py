@@ -1,3 +1,4 @@
+import itertools
 import logging
 import random
 import string
@@ -67,7 +68,7 @@ class CrawlToken:
                         return None
                     continue
             if get_first:
-                tokens = list(map(self.get_tokens, jsons))[0]
+                tokens = list(itertools.chain(*map(self.get_tokens, jsons)))
                 return tokens, new_database_last_post_date
         except Exception as e:
             logging.error(f"{resp}, {e}")

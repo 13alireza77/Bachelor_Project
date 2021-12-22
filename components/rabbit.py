@@ -90,20 +90,16 @@ class RabbitConnection:
     #         r.channel.basic_ack(delivery_tag)
 
     def insert_many_rabbit(self, list_data):
-        while True:
+        data_len = len(list_data) - 1
+        while data_len >= 0:
             try:
-                data_len = len(list_data) - 1
-                while data_len >= 0:
-                    try:
-                        self.channel.basic_publish(exchange=self._exchange,
-                                                   routing_key=self._route,
-                                                   body=list_data[data_len],
-                                                   properties=pika.BasicProperties(
-                                                       delivery_mode=2,
-                                                   ))
-                        data_len -= 1
-                    except:
-                        self.refresh_connection()
-                break
+                self.channel.basic_publish(exchange=self._exchange,
+                                           routing_key=self._route,
+                                           body=list_data[data_len],
+                                           properties=pika.BasicProperties(
+                                               delivery_mode=2,
+                                           ))
+                data_len -= 1
             except:
                 self.refresh_connection()
+                continue
