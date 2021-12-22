@@ -141,7 +141,7 @@ class RequestViewSet(GenericViewSet):
             access_level = self.get_queryset().get(user=self.request.user)
         except Exception:
             return Response("No access level defined for this user")
-        if access_level.max_number_of_data and access_level.max_number_of_data < 1:
+        if access_level.max_number_of_data is not None and access_level.max_number_of_data < 1:
             return Response(f"The number of your requests has been completed")
         if categories is not None:
             categories = [c for c in categories.strip().split(',')]
@@ -184,7 +184,7 @@ class RequestViewSet(GenericViewSet):
             access_level = self.get_queryset().get(user=self.request.user)
         except Exception:
             return Response("No access level defined for this user")
-        if access_level.max_number_of_data and access_level.max_number_of_data < 1:
+        if access_level.max_number_of_data is not None and access_level.max_number_of_data < 1:
             return Response(f"The number of your requests has been completed")
         status, response = self.crawl_post.get_post(token)
         if status != 1:
