@@ -8,9 +8,9 @@ from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiParameter
-from rest_framework import viewsets, generics
+from rest_framework import mixins
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
@@ -79,17 +79,19 @@ class DatasResponse(Response):
 
 @extend_schema_view(
     post=extend_schema(tags=[_("register")], summary=_("create account")),
+
 )
-class UserCreateViewSet(generics.CreateAPIView, viewsets.ViewSet):
+class UserCreateViewSet(mixins.CreateModelMixin, GenericViewSet):
     queryset = get_user_model().objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAdminUser,)
+    permission_classes = (AllowAny,)
 
 
 @extend_schema_view(
-    post=extend_schema(tags=[_("accessleve")], summary=_("create access leve")),
+    post=extend_schema(tags=[_("accesslevel")], summary=_("create access leve")),
+    update=extend_schema(tags=[_("accesslevel")], summary=_("update access leve")),
 )
-class AccessLevelViewSet(generics.CreateAPIView, viewsets.ViewSet):
+class AccessLevelViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, GenericViewSet):
     queryset = AccessLevel.objects.all()
     serializer_class = AccessLevelSerializer
     permission_classes = (IsAdminUser,)

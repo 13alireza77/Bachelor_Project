@@ -15,6 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
         user = get_user_model()(**validated_data)
         user.set_password(password)
         user.save()
+        AccessLevel.objects.create(user=user, max_number_of_data=0)
         return user
 
 
