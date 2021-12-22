@@ -137,6 +137,12 @@ class RequestViewSet(GenericViewSet):
         types = serializer.validated_data.get("type")
         if types is None:
             types = "data"
+        try:
+            access_level = self.get_queryset().get(user=self.request.user)
+        except Exception:
+            return Response("No access level defined for this user")
+        if access_level.max_number_of_data and access_level.max_number_of_data < 1:
+            return Response(f"The number of your requests has been completed")
         if categories is not None:
             categories = [c for c in categories.strip().split(',')]
         request_id = str(uuid.uuid4())
