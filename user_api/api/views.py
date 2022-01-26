@@ -19,10 +19,11 @@ from rest_framework.viewsets import GenericViewSet
 
 from crawl.divar.post import CrawlPost
 from crawl.formatter import PostFormater
+from crawl.models import PostDb
 from user_api.api.serializers import UserSerializer, AccessLevelSerializer, SuggestionsSerializer, \
     DatasSerializer
 from user_api.models import AccessLevel, RequestHistory
-from user_api.tasks import render_suggestions_xlsx, render_datas
+from user_api.tasks import render_datas, render_suggestions
 
 
 class SuggestionsResponse(Response):
@@ -38,8 +39,8 @@ class SuggestionsResponse(Response):
     def close(self):
         super(SuggestionsResponse, self).close()
         try:
-            render_suggestions_xlsx(request_id=self.request_id, static_path=self.static_suggestions,
-                                    suggestions=self.json_data)
+            render_suggestions(request_id=self.request_id, static_path=self.static_suggestions,
+                               suggestions=self.json_data)
         except Exception as e:
             request_history = RequestHistory.objects.get(request_id=self.request_id)
             request_history.status = 0
@@ -134,6 +135,23 @@ class RequestViewSet(GenericViewSet):
         else:
             return DatasSerializer
 
+    def _get_suggestions(self, token: str):
+        json_data = None
+        status, response = self.crawl_post.get_post(token)
+        if status != 1:
+            return False, Response(f"{token} expired or is wrong")
+        try:
+            json_data = PostFormater(response).clean()["suggestions"][:self.max_suggestions_count]
+        except Exception:
+            try:
+                json_data = PostDb().find_one({"token": token})["suggestions"][:self.max_suggestions_count]
+            except Exception:
+                pass
+            pass
+        if json_data is not None:
+            return True, json_data
+        return False, Response("has no suggestions")
+
     @action(methods=['post'], detail=False)
     def request_datas(self, *args, **kwargs):
         serializer = self.get_serializer(data=self.request.data)
@@ -193,13 +211,9 @@ class RequestViewSet(GenericViewSet):
             return Response("No access level defined for this user")
         if access_level.max_number_of_data is not None and access_level.max_number_of_data < 1:
             return Response(f"The number of your requests has been completed")
-        status, response = self.crawl_post.get_post(token)
-        if status != 1:
-            return Response(f"{token} expired or is wrong")
-        try:
-            json_data = PostFormater(response).clean()["suggestions"][:self.max_suggestions_count]
-        except Exception:
-            return Response("has no suggestions")
+        status, json_data = self._get_suggestions(token=token)
+        if not status:
+            return json_data
         request_id = str(uuid.uuid4())
         RequestHistory.create_request_history(user=self.request.user, request_id=request_id,
                                               count_data=self.max_suggestions_count)

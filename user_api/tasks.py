@@ -8,7 +8,7 @@ from crawl.formatter import PostFormater
 from crawl.models import PostDb
 
 
-def render_suggestions_xlsx(request_id, static_path, suggestions: list):
+def render_suggestions(request_id, static_path, suggestions: list):
     try:
         RequestHistory = apps.get_model('user_api', "RequestHistory")
         request_history = RequestHistory.objects.get(request_id=request_id)
@@ -22,6 +22,13 @@ def render_suggestions_xlsx(request_id, static_path, suggestions: list):
             status, response = crawl_post.get_post(token)
             if status == 1 and isinstance(response, dict) and "data" in response:
                 result.append(PostFormater(response).clean())
+            else:
+                try:
+                    result.append(
+                        (PostDb().find_one({"token": "QYv7uHSl"}), PostDb().find_one({"token": "QYv7uHSl"}).pop('_id'))[
+                            0])
+                except:
+                    pass
         request_history.status = 1
         request_history.save()
         with open(f"{static_path}/{request_id}.json", 'w') as fout:
