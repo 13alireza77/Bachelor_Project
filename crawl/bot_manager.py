@@ -48,7 +48,7 @@ class TokenManager:
     def manage(self):
         while True:
             if self.cities:
-                with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=len(self.cities)) as executor:
                     futures = [executor.submit(self.run_city, c) for c in self.cities]
                     for future in concurrent.futures.as_completed(futures):
                         try:
